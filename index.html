@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laboratorio Milton Gamboa - Probabilidad, Estadística & ML</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker listo'))
+            .catch(err => console.log('Error en SW', err));
+        });
+      }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/theme/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/python/python.min.js"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; background: #1e1e1e; overflow: hidden; }
+        
+        header { 
+            background: linear-gradient(135deg, #1a2a6c 0%, #b21f1f 50%, #fdbb2d 100%); 
+            color: white; padding: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.6); z-index: 10;
+        }
+        header h1 { margin: 0; font-size: 1.6rem; letter-spacing: 2px; text-transform: uppercase; font-weight: 800; }
+        header p { margin: 8px 0 0; font-size: 1.1rem; color: #ffffff; font-weight: 500; opacity: 0.9; }
+
+        #status { font-size: 12px; background: #f1c40f; padding: 6px; text-align: center; font-weight: bold; color: #000; transition: 0.5s; }
+        
+        .main-container { display: flex; flex: 1; overflow: hidden; }
+        
+        /* EDITOR */
+        .panel-editor { display: flex; flex-direction: column; width: 50%; border-right: 2px solid #333; background: #282a36; }
+        .CodeMirror { flex: 1; font-size: 15px; height: auto !important; }
+        
+        .controls { display: flex; flex-direction: column; padding: 10px; gap: 8px; background: #1e1e1e; }
+        
+        /* RESULTADOS */
+        .panel-output { width: 50%; background: #ffffff; display: flex; flex-direction: column; overflow-y: auto; padding: 30px; box-sizing: border-box; }
+        #text-output { font-family: 'Consolas', monospace; font-size: 14px; color: #2c3e50; white-space: pre-wrap; margin-bottom: 25px; line-height: 1.6; }
+        #plot-container img { max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); margin-top: 20px; border: 1px solid #eee; }
+        
+        /* BOTONES */
+        button { border: none; padding: 15px; font-size: 14px; cursor: pointer; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; color: white; border-radius: 4px; }
+        #upload-btn { background: #34495e; }
+        #run-btn { background: #000000; font-size: 16px; }
+        #run-btn:hover { background: #333; transform: translateY(-2px); }
+        #run-btn:disabled { background: #7f8c8d; cursor: not-allowed; }
+
+        footer { background: #111; color: #666; text-align: center; padding: 10px; font-size: 11px; }
+
+        /* RESPONSIVO CELULAR */
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; overflow-y: auto; }
+            .panel-editor, .panel-output { width: 100%; flex: none; }
+            .CodeMirror { height: 350px !important; }
+            .panel-output { overflow-y: visible; min-height: 500px; padding: 20px; }
+            header h1 { font-size: 1.2rem; }
+        }
+
+        #pyodide-canvas-container, .pyodide-output-area { display: none !important; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>MILTON GAMBOA</h1>
+    <p>Probabilidad, Estadística & Machine Learning</p>
+</header>
+
+<div id="status">Iniciando Suite de Inteligencia Artificial...</div>
+
+<div class="main-container">
+    <div class="panel-editor">
+        <textarea id="editor">
+# --- Laboratorio de Datos ---
+# Docente: Milton Gamboa
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 1. Simulación de datos
+datos = np.random.normal(70, 15, 200)
+
+print(f"--- REPORTE DE RESULTADOS ---")
+print(f"Media del grupo: {np.mean(datos):.2f}")
+print(f"Desviación Std:  {np.std(datos):.2f}")
+
+# 2. Gráfico profesional con Seaborn
+plt.figure(figsize=(8, 5))
+sns.histplot(datos, kde=True, color='#e67e22', bordercolor='white')
+plt.title("Análisis de Distribución - Brasilia Bosa")
+plt.show()</textarea>
+        
+        <div class="controls">
+            <input type="file" id="file-upload" accept=".csv, .xlsx" style="display: none;">
+            <button id="upload-btn">📂 Cargar Datos (Excel o CSV)</button>
+            <button id="run-btn" disabled>▶ Ejecutar Laboratorio</button>
+        </div>
+    </div>
+
+    <div class="panel-output">
+        <div id="text-output">Preparando entorno...</div>
+        <div id="plot-container"></div>
+    </div>
+</div>
+
+<footer>
+    Colegio Brasilia Bosa IED | Mg. Milton Gamboa | Candidato a PhD UNADE
+</footer>
+
+<script>
+    // 1. Inicializar Editor CodeMirror
+    const editorInstance = CodeMirror.fromTextArea(document.getElementById("editor"), {
+        mode: "python", theme: "dracula", lineNumbers: true, matchBrackets: true, autoCloseBrackets: true, indentUnit: 4
+    });
+
+    const textOutput = document.getElementById("text-output");
+    const plotContainer = document.getElementById("plot-container");
+    const runBtn = document.getElementById("run-btn");
+    const statusMsg = document.getElementById("status");
+    const fileUpload = document.getElementById("file-upload");
+    const uploadBtn = document.getElementById("upload-btn");
+    let pyodide;
+
+    // 2. Carga de Python y Librerías (Incluyendo ML)
+    async function initPython() {
+        try {
+            pyodide = await loadPyodide();
+            // Carga de paquetes oficiales
+            await pyodide.loadPackage(["numpy", "pandas", "scipy", "matplotlib", "scikit-learn", "statsmodels"]);
+            
+            // Carga de paquetes adicionales vía micropip
+            await pyodide.loadPackage("micropip");
+            const micropip = pyodide.pyimport("micropip");
+            await micropip.install(["openpyxl", "seaborn"]);
+
+            statusMsg.innerText = "✅ SISTEMA LISTO - Creado por Milton Gamboa";
+            statusMsg.style.background = "#27ae60";
+            statusMsg.style.color = "white";
+            runBtn.disabled = false;
+            textOutput.innerText = "Entorno cargado con Sklearn, Seaborn y Pandas. Listo para analítica avanzada.";
+        } catch (e) {
+            textOutput.innerText = "Error cargando suite: " + e;
+            statusMsg.innerText = "❌ Error en los módulos";
+            statusMsg.style.background = "#c0392b";
+        }
+    }
+
+    // 3. Gestión de archivos
+    uploadBtn.onclick = () => fileUpload.click();
+    fileUpload.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+            const data = new Uint8Array(ev.target.result);
+            pyodide.FS.writeFile(file.name, data);
+            textOutput.innerText = `✅ DATOS CARGADOS: "${file.name}"\n\nEjemplo de uso:\ndf = pd.read_csv("${file.name}")`;
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    // 4. Lógica de Ejecución
+    runBtn.addEventListener("click", async () => {
+        textOutput.innerText = "Procesando información...";
+        plotContainer.innerHTML = "";
+        try {
+            await pyodide.runPythonAsync(`
+import sys, io, matplotlib.pyplot as plt, base64
+plt.switch_backend('Agg')
+sys.stdout = io.StringIO()
+def get_plot():
+    if plt.get_fignums():
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight', dpi=115)
+        buf.seek(0)
+        img_str = base64.b64encode(buf.read()).decode('utf-8')
+        plt.clf(); plt.close('all')
+        return img_str
+    return None
+            `);
+
+            await pyodide.runPythonAsync(editorInstance.getValue());
+            const stdout = pyodide.runPython("sys.stdout.getvalue()");
+            textOutput.innerText = stdout || "Cómputo finalizado correctamente.";
+            
+            const plotData = pyodide.runPython("get_plot()");
+            if (plotData) {
+                const img = document.createElement("img");
+                img.src = "data:image/png;base64," + plotData;
+                plotContainer.appendChild(img);
+            }
+            if (window.innerWidth <= 768) textOutput.scrollIntoView({ behavior: 'smooth' });
+        } catch (err) {
+            textOutput.innerText = "❌ ERROR EN EL PROCESO:\n" + err;
+        }
+    });
+
+    initPython();
+</script>
+</body>
+</html>
