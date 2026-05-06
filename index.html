@@ -119,7 +119,15 @@
     editorInstance.on("inputRead", function(cm, change) {
         if (change.text[0].match(/[a-z]/i)) cm.showHint({ hint: miltonHint, completeSingle: false });
     });
-
+// AUTO-GUARDADO AUTOMÁTICO cada 2 segundos
+let autoSaveTimer;
+editorInstance.on("change", function() {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+        localStorage.setItem('milton_lab_save', editorInstance.getValue());
+        console.log('✅ Código auto-guardado');
+    }, 2000); // Espera 2 segundos después del último cambio
+});
     // CARGAR ARCHIVO .PY
     document.getElementById('file-upload-py').onchange = (e) => {
         const file = e.target.files[0];
