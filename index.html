@@ -6,131 +6,169 @@
     <title>Laboratorio Milton Gamboa - IA & Estadística</title>
     
     <link rel="manifest" href="manifest.json">
-
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker listo'))
-            .catch(err => console.log('Error en SW', err));
+          navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
         });
       }
     </script>
 
     <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/theme/dracula.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/hint/show-hint.min.css">
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/python/python.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/hint/show-hint.min.js"></script>
 
     <style>
         body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; background: #1e1e1e; overflow: hidden; }
-        header { background: linear-gradient(135deg, #1a2a6c 0%, #b21f1f 50%, #fdbb2d 100%); color: white; padding: 12px; text-align: center; }
-        header h1 { margin: 0; font-size: 1.3rem; letter-spacing: 2px; text-transform: uppercase; font-weight: 800; }
-        header p { margin: 3px 0 0; font-size: 0.85rem; }
-        #status { font-size: 11px; background: #f1c40f; padding: 4px; text-align: center; font-weight: bold; color: #000; }
+        header { background: linear-gradient(135deg, #1a2a6c 0%, #b21f1f 50%, #fdbb2d 100%); color: white; padding: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.6); z-index: 10; }
+        header h1 { margin: 0; font-size: 1.6rem; letter-spacing: 2px; text-transform: uppercase; font-weight: 800; }
+        header p { margin: 8px 0 0; font-size: 1.1rem; color: #ffffff; font-weight: 500; opacity: 0.9; }
+        #status { font-size: 12px; background: #f1c40f; padding: 6px; text-align: center; font-weight: bold; color: #000; }
         .main-container { display: flex; flex: 1; overflow: hidden; }
         .panel-editor { display: flex; flex-direction: column; width: 50%; border-right: 2px solid #333; background: #282a36; }
-        .CodeMirror { flex: 1; font-size: 16px; }
-        .controls-bar { display: flex; padding: 10px; background: #111; gap: 8px; }
-        #run-btn { flex: 1; background: #27ae60; color: white; border: none; padding: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-        .panel-output { width: 50%; background: #fff; display: flex; flex-direction: column; overflow-y: auto; }
-        #text-output { padding: 20px; font-family: monospace; }
-        #plot-container img { max-width: 100%; margin-top: 15px; border-radius: 10px; }
+        .CodeMirror { flex: 1; font-size: 15px; height: auto !important; }
+        .controls { display: flex; flex-direction: column; padding: 10px; gap: 8px; background: #1e1e1e; }
+        .panel-output { width: 50%; background: #ffffff; display: flex; flex-direction: column; overflow-y: auto; padding: 30px; box-sizing: border-box; }
+        #text-output { font-family: 'Consolas', monospace; font-size: 14px; color: #2c3e50; white-space: pre-wrap; margin-bottom: 25px; line-height: 1.6; }
+        #plot-container { text-align: center; }
+        #plot-container img { max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); margin-top: 20px; border: 1px solid #eee; }
+        
+        button { border: none; padding: 15px; font-size: 14px; cursor: pointer; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; color: white; border-radius: 4px; }
+        #upload-btn { background: #34495e; }
+        #download-plot-btn { background: #e67e22; display: none; margin-top: 15px; } /* Botón naranja para la gráfica */
+        #run-btn { background: #000000; font-size: 16px; }
+        #run-btn:hover { background: #333; transform: translateY(-2px); }
+        #run-btn:disabled { background: #7f8c8d; cursor: not-allowed; }
+        footer { background: #111; color: #666; text-align: center; padding: 10px; font-size: 11px; }
+
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; overflow-y: auto; }
+            .panel-editor, .panel-output { width: 100%; flex: none; }
+            .CodeMirror { height: 350px !important; }
+            .panel-output { overflow-y: visible; min-height: 500px; padding: 20px; }
+        }
     </style>
 </head>
-
 <body>
 
 <header>
     <h1>MILTON GAMBOA</h1>
-    <p>Estadística & Machine Learning</p>
+    <p>Probabilidad, Estadística & Machine Learning</p>
 </header>
 
-<div id="status">Cargando Python...</div>
+<div id="status">Iniciando Suite de Inteligencia Artificial...</div>
 
 <div class="main-container">
     <div class="panel-editor">
         <textarea id="editor"></textarea>
-        <div class="controls-bar">
-            <button id="run-btn" disabled onclick="runLab()">▶ Ejecutar</button>
+        <div class="controls">
+            <input type="file" id="file-upload" accept=".csv, .xlsx" style="display: none;">
+            <button id="upload-btn">📂 Cargar Datos (Excel o CSV)</button>
+            <button id="run-btn" disabled>▶ Ejecutar Laboratorio</button>
         </div>
     </div>
-
     <div class="panel-output">
         <div id="text-output">Preparando entorno...</div>
         <div id="plot-container"></div>
+        <button id="download-plot-btn" onclick="downloadPlot()">📥 Descargar Gráfica (Imagen)</button>
     </div>
 </div>
 
+<footer>Colegio Brasilia Bosa IED | Mg. Milton Gamboa</footer>
+
 <script>
-    let editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
-        mode: "python",
-        theme: "dracula",
-        lineNumbers: true
+    const editorInstance = CodeMirror.fromTextArea(document.getElementById("editor"), {
+        mode: "python", theme: "dracula", lineNumbers: true, matchBrackets: true, autoCloseBrackets: true, indentUnit: 4
     });
 
+    // AUTO-RECUPERACIÓN
+    const savedCode = localStorage.getItem('milton_lab_autosave');
+    if (savedCode) { editorInstance.setValue(savedCode); }
+    editorInstance.on("change", () => { localStorage.setItem('milton_lab_autosave', editorInstance.getValue()); });
+
+    const textOutput = document.getElementById("text-output");
+    const plotContainer = document.getElementById("plot-container");
+    const runBtn = document.getElementById("run-btn");
+    const downloadPlotBtn = document.getElementById("download-plot-btn");
+    const statusMsg = document.getElementById("status");
     let pyodide;
 
     async function initPython() {
-        pyodide = await loadPyodide();
-        await pyodide.loadPackage(["numpy", "matplotlib"]);
-        document.getElementById("status").innerText = "✅ Listo";
-        document.getElementById("run-btn").disabled = false;
+        try {
+            pyodide = await loadPyodide();
+            await pyodide.loadPackage(["numpy", "pandas", "scipy", "matplotlib", "scikit-learn"]);
+            await pyodide.loadPackage("micropip");
+            const micropip = pyodide.pyimport("micropip");
+            await micropip.install(["openpyxl", "seaborn"]);
+
+            pyodide.runPython(`
+                import builtins, js
+                builtins.input = lambda p="": js.prompt(p)
+            `);
+
+            statusMsg.innerText = "✅ SISTEMA LISTO - Milton Gamboa";
+            statusMsg.style.background = "#27ae60"; statusMsg.style.color = "white";
+            runBtn.disabled = false;
+            textOutput.innerText = "Listo para trabajar.";
+        } catch (e) { statusMsg.innerText = "❌ Error de carga"; }
     }
 
-    async function runLab() {
-        const out = document.getElementById("text-output");
-        const plot = document.getElementById("plot-container");
+    // DESCARGAR GRÁFICA
+    function downloadPlot() {
+        const img = plotContainer.querySelector('img');
+        if (img) {
+            const link = document.createElement('a');
+            link.href = img.src;
+            link.download = 'grafica_milton_gamboa.png';
+            link.click();
+        }
+    }
 
-        out.innerText = ">>> Ejecutando...";
-        plot.innerHTML = "";
+    document.getElementById('upload-btn').onclick = () => document.getElementById('file-upload').click();
+    document.getElementById('file-upload').onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        pyodide.FS.writeFile(file.name, new Uint8Array(await file.arrayBuffer()));
+        textOutput.innerText = `✅ DATOS CARGADOS: "${file.name}"`;
+    };
 
+    runBtn.addEventListener("click", async () => {
+        textOutput.innerText = "Procesando...";
+        plotContainer.innerHTML = "";
+        downloadPlotBtn.style.display = "none";
+        
         try {
             await pyodide.runPythonAsync(`
 import sys, io, matplotlib.pyplot as plt, base64
 plt.switch_backend('Agg')
 sys.stdout = io.StringIO()
+def get_plot():
+    if plt.get_fignums():
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight', dpi=115)
+        buf.seek(0)
+        img_str = base64.b64encode(buf.read()).decode('utf-8')
+        plt.clf(); plt.close('all')
+        return img_str
+    return None
             `);
 
-            await pyodide.runPythonAsync(editor.getValue());
-
-            out.innerText = pyodide.runPython("sys.stdout.getvalue()") || "Listo";
-
-            const images = pyodide.runPython(`
-import io, base64
-imgs = []
-
-for n in plt.get_fignums():
-    fig = plt.figure(n)
-    buf = io.BytesIO()
-    fig.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
-    imgs.append(base64.b64encode(buf.read()).decode('utf-8'))
-
-plt.close('all')
-imgs
-            `);
-
-            if (images.length > 0) {
-                images.forEach(imgData => {
-                    let img = document.createElement("img");
-                    img.src = "data:image/png;base64," + imgData;
-                    plot.appendChild(img);
-                });
+            await pyodide.runPythonAsync(editorInstance.getValue());
+            textOutput.innerText = pyodide.runPython("sys.stdout.getvalue()") || "Cómputo finalizado.";
+            
+            const plotData = pyodide.runPython("get_plot()");
+            if (plotData) {
+                const img = document.createElement("img");
+                img.src = "data:image/png;base64," + plotData;
+                plotContainer.appendChild(img);
+                downloadPlotBtn.style.display = "block"; // Mostrar botón si hay imagen
             }
-
-        } catch (err) {
-            out.innerText = "❌ ERROR:\n" + err;
-        }
-    }
+        } catch (err) { textOutput.innerText = "❌ ERROR:\n" + err; }
+    });
 
     initPython();
 </script>
-
 </body>
 </html>
